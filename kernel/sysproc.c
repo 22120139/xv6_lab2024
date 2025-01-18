@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -90,4 +91,42 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64 
+sys_trace(void)
+{
+  int mask;
+  argint(0, &mask);
+  myproc()->syscall_trace = mask;
+  return 0;
+}
+
+uint64
+sys_sysinfo(void)
+{
+    struct sysinfo info;
+    struct proc *p = myproc();  // Lấy tiến trình hiện tại
+    uint64 addr;
+    
+    // Lấy đối số (địa chỉ của struct sysinfo trong user space)
+    argaddr(0, &addr); // Lấy địa chỉ của đối số từ không gian người dùng
+    
+    // Kiểm tra xem địa chỉ có hợp lệ không (ví dụ: không phải NULL)
+    if (addr == 0) {
+        return -1;  // Nếu địa chỉ không hợp lệ (NULL), trả về lỗi
+    }
+
+    // Gọi các hàm thu thập thông tin
+    info.freemem = get_freemem();
+    info.nproc = get_nproc();
+    info.loadavg = get_loadavg();
+
+    printf("Loadavg = %lu\n", info.loadavg);
+
+    // Sao chép dữ liệu sang user space
+    if (copyout(p->pagetable, addr, (char *)&info, sizeof(info)) < 0)
+        return -1;
+
+    return 0;  // Thành công
 }

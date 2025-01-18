@@ -310,6 +310,8 @@ fork(void)
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
+  np->syscall_trace = p->syscall_trace;
+
   pid = np->pid;
 
   release(&np->lock);
@@ -692,4 +694,28 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+uint64 get_nproc(void) {
+    struct proc *p;
+    uint64 count = 0;
+
+    for (p = proc; p < &proc[NPROC]; p++) {
+        if (p->state != UNUSED) // kiểm tra trạng thái tiến trình không sử dụng thì tăng count
+            count++;
+    }
+
+    return count;
+}
+
+uint64 loadavg = 0;
+
+uint64 get_loadavg(void) {
+  return loadavg;
+}
+
+void update_loadavg(void) {
+    uint64 active_proc_count = get_nproc();
+    // Simple moving average for loadavg (you can adjust this logic)
+    loadavg = (loadavg * 99 + active_proc_count) / 100;
 }

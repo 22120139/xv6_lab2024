@@ -80,3 +80,19 @@ kalloc(void)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }
+
+uint64 get_freemem(void) {
+    struct run *r;
+    uint64 free = 0;
+
+    acquire(&kmem.lock);  // Khóa bộ nhớ
+    // if(r) {
+    //   free += PGSIZE;  // Cộng kích thước mỗi trang
+    //   kmem.freelist = r->next;
+    // }
+    for (r = kmem.freelist; r; r = r->next)
+        free += PGSIZE;  // Cộng kích thước mỗi trang
+    release(&kmem.lock);  // Mở khóa
+
+    return free;
+}
